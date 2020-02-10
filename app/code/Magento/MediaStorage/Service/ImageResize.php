@@ -303,13 +303,27 @@ class ImageResize
     private function resize(array $imageParams, string $originalImagePath, string $originalImageName)
     {
         unset($imageParams['id']);
-        $image = $this->makeImage($originalImagePath, $imageParams);
         $imageAsset = $this->assertImageFactory->create(
             [
                 'miscParams' => $imageParams,
                 'filePath' => $originalImageName,
             ]
         );
+        $imageAssetPath = $imageAsset->getPath();
+        $mediastoragefilename = $this->mediaDirectory->getRelativePath($imageAssetPath);
+
+        $alreadyResized =
+            (
+                $this->fileStorageDatabase->checkDbUsage() &&
+                $this->fileStorageDatabase->fileExists($mediastoragefilename)
+            ) || $this->mediaDirectory->isFile($imageAssetPath);
+
+        if ($alreadyResized) {
+            // image was already resized, no need to do it again!
+            return;
+        }
+
+        $image = $this->makeImage($originalImagePath, $imageParams);
 
         if ($imageParams['image_width'] !== null && $imageParams['image_height'] !== null) {
             $image->resize($imageParams['image_width'], $imageParams['image_height']);
@@ -335,10 +349,9 @@ class ImageResize
             $image->watermark($this->getWatermarkFilePath($imageParams['watermark_file']));
         }
 
-        $image->save($imageAsset->getPath());
+        $image->save($imageAssetPath);
 
         if ($this->fileStorageDatabase->checkDbUsage()) {
-            $mediastoragefilename = $this->mediaDirectory->getRelativePath($imageAsset->getPath());
             $this->fileStorageDatabase->saveFile($mediastoragefilename);
         }
     }
