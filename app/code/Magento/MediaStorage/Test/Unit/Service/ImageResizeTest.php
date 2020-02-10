@@ -120,6 +120,7 @@ class ImageResizeTest extends \PHPUnit\Framework\TestCase
      * @var string
      */
     private $testfilepath;
+
     /**
      * @var \PHPUnit\Framework\MockObject\MockObject|StoreManagerInterface
      */
